@@ -80,7 +80,7 @@
         .container {
             width: 90%;
             max-width: 400px;
-            margin-top: 80px; /* Nafasi ya header */
+            margin-top: 80px;
         }
 
         /* ----- SEHEMU YA MEDIA PLAYER ----- */
@@ -111,10 +111,10 @@
             margin-bottom: 10px;
         }
 
-        /* ----- SEHEMU YA GAME ----- */
+        /* ----- SEHEMU YA GAME (CUSTOM POOL GAME) ----- */
         .game-section {
             background: #2c3e50;
-            padding: 25px 15px;
+            padding: 15px;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             text-align: center;
@@ -124,21 +124,32 @@
 
         .game-section h3 {
             margin-top: 0;
-            font-size: 20px;
-            margin-bottom: 10px;
+            font-size: 18px;
+            margin-bottom: 5px;
         }
 
-        .play-game-btn {
-            background-color: #f39c12;
+        canvas {
+            background-color: #27ae60; /* Rangi ya meza ya Pool */
+            border: 6px solid #5c4033; /* Ukingo wa mbao */
+            border-radius: 10px;
+            width: 100%;
+            max-width: 320px;
+            height: auto;
+            touch-action: none; /* Inazuia kioo kusogea wakati wa kucheza */
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            display: block;
+            margin: 0 auto;
+        }
+
+        .btn-reset {
+            background-color: #e74c3c;
             color: white;
-            text-decoration: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 16px;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
             font-weight: bold;
-            display: inline-block;
+            cursor: pointer;
             margin-top: 10px;
-            box-shadow: 0 4px 10px rgba(243, 156, 18, 0.4);
         }
 
         /* ----- SEHEMU YA DONATION ----- */
@@ -152,17 +163,8 @@
             box-shadow: 0 4px 15px rgba(79, 172, 254, 0.4);
         }
 
-        .donation-card h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            font-weight: normal;
-        }
-
-        .donation-card .number {
-            font-size: 26px;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
+        .donation-card h3 { margin: 0 0 10px 0; font-size: 16px; font-weight: normal; }
+        .donation-card .number { font-size: 26px; font-weight: bold; letter-spacing: 1px; }
 
         /* ----- VIFUNGO VYA SHARE & MORE APPS ----- */
         .action-buttons {
@@ -186,17 +188,10 @@
 
         .btn-whatsapp { background-color: #25D366; }
         .btn-bluetooth { background-color: #0082fc; }
-        .btn-more { 
-            background-color: #6c5ce7; 
-            grid-column: span 2; 
-        }
+        .btn-more { background-color: #6c5ce7; grid-column: span 2; }
+        .btn-ad { background-color: #ff0055; grid-column: span 2; box-shadow: 0 4px 10px rgba(255, 0, 85, 0.4); font-size: 16px; }
 
-        footer {
-            font-size: 12px;
-            color: #888;
-            margin-bottom: 20px;
-            text-align: center;
-        }
+        footer { font-size: 12px; color: #888; margin-bottom: 20px; text-align: center; }
     </style>
 </head>
 <body>
@@ -220,17 +215,17 @@
         <div id="media" class="player-section">
             <label class="custom-file-input" for="file-upload">Chagua Wimbo/Video (Offline)</label>
             <input type="file" id="file-upload" accept="audio/*,video/*" style="display:none">
-            
             <video id="media-display" controls></video>
             <div id="file-name" style="margin-top: 10px; color: #555; font-size: 14px;">Hakuna faili lililochaguliwa</div>
         </div>
 
         <div id="game" class="game-section">
-            <h3>🎱 Wsendy Pool Master</h3>
-            <p style="font-size: 14px; color: #ccc;">Tumehamishia Game kwenye App yake maalum ili kucheza kwa uhuru na vizuri zaidi!</p>
-            <a href="https://albert199900.github.io/Wsendy-Pool-Master/" class="play-game-btn">
-                🎮 Bofya Hapa Kucheza Game
-            </a>
+            <h3>🎱 Wsendy Mini Pool</h3>
+            <p style="font-size: 12px; color: #ccc; margin-bottom: 10px;">Vuta mpira mweupe nyuma na achia ili kupiga.</p>
+            
+            <canvas id="poolCanvas" width="300" height="400"></canvas>
+            
+            <button class="btn-reset" onclick="resetGame()">Anza Upya Game</button>
         </div>
 
         <div id="michango" class="donation-card">
@@ -248,9 +243,7 @@
             </a>
 
             <a href="https://oddlystudent.com/tu1ixct1?key=bf9ebe5967e8fa09c93394892db398f029084400" 
-               target="_blank" 
-               class="btn" 
-               style="background-color: #ff0055; grid-column: span 2; font-size: 16px; margin-top: 5px; box-shadow: 0 4px 10px rgba(255, 0, 85, 0.4);">
+               target="_blank" class="btn btn-ad">
                🎁 Bofya Hapa Kusapoti App (Tazama Tangazo)
             </a>
         </div>
@@ -259,16 +252,20 @@
     </div>
 
     <script>
-        // Kazi ya kufungua na kufunga Menyu
-        function openMenu() {
-            document.getElementById("sideMenu").style.width = "250px";
-        }
+        // 1. TANGANZO LA POP-UNDER (Linafunguka Otomatiki mara ya kwanza)
+        let adServed = false;
+        document.body.addEventListener('touchstart', function() {
+            if (!adServed) {
+                window.open("https://oddlystudent.com/tu1ixct1?key=bf9ebe5967e8fa09c93394892db398f029084400", "_blank");
+                adServed = true;
+            }
+        });
 
-        function closeMenu() {
-            document.getElementById("sideMenu").style.width = "0";
-        }
+        // 2. KAZI ZA MENU
+        function openMenu() { document.getElementById("sideMenu").style.width = "250px"; }
+        function closeMenu() { document.getElementById("sideMenu").style.width = "0"; }
 
-        // Kazi ya kupakia faili na kucheza (Offline Media)
+        // 3. MEDIA PLAYER
         const fileUpload = document.getElementById('file-upload');
         const mediaDisplay = document.getElementById('media-display');
         const fileNameText = document.getElementById('file-name');
@@ -278,35 +275,124 @@
             if (file) {
                 const fileURL = URL.createObjectURL(file);
                 fileNameText.innerText = "Inacheza: " + file.name;
-                
                 mediaDisplay.style.display = "block";
                 mediaDisplay.src = fileURL;
                 mediaDisplay.play();
             }
         });
 
-        // Kazi ya Kushare kwenye WhatsApp
+        // 4. KUSHAA (SHARE)
         function shareWhatsApp() {
-            const text = "Sikiliza nyimbo na cheza Wsendy Pool Master! Changia mradi kupitia 0627962633. Link ya App: https://albert199900.github.io/Wsendy-play-all/";
+            const text = "Sikiliza nyimbo na cheza Wsendy Mini Pool! Changia mradi: 0627962633. Link: https://albert199900.github.io/Wsendy-play-all/";
             window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(text));
         }
-
-        // Kazi ya Kushare (Bluetooth/System Share)
         async function shareBluetooth() {
             if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: 'Wsendy Play All',
-                        text: 'Tumia app hii kucheza Pool Master na video/audio offline.',
-                        url: 'https://albert199900.github.io/Wsendy-play-all/'
-                    });
-                } catch (err) {
-                    console.log("Sharing imekatishwa.");
-                }
-            } else {
-                alert("Browser yako haisupport Direct Share. Tafadhali copy link.");
+                try { await navigator.share({ title: 'Wsendy Play All', url: 'https://albert199900.github.io/Wsendy-play-all/' }); } 
+                catch (err) { console.log("Sharing imekatishwa."); }
+            } else { alert("Browser yako haisupport Direct Share. Tafadhali copy link."); }
+        }
+
+        // 5. KODI YA GAME YA POOL (Imewekwa moja kwa moja)
+        const canvas = document.getElementById('poolCanvas');
+        const ctx = canvas.getContext('2d');
+        let balls = [];
+        let isDragging = false;
+        let dragPos = {x: 0, y: 0};
+
+        function initGame() {
+            // Kuweka mipira kwenye meza
+            balls = [
+                {x: 150, y: 320, vx: 0, vy: 0, r: 10, color: 'white'},  // Mpira mweupe (Cue ball)
+                {x: 150, y: 120, vx: 0, vy: 0, r: 10, color: '#f1c40f'}, // Njano
+                {x: 138, y: 100, vx: 0, vy: 0, r: 10, color: '#e74c3c'}, // Nyekundu
+                {x: 162, y: 100, vx: 0, vy: 0, r: 10, color: '#e74c3c'}, // Nyekundu
+                {x: 150, y: 80, vx: 0, vy: 0, r: 10, color: '#2c3e50'}   // Mweusi
+            ];
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Chora Mashimo ya Meza (Pockets)
+            ctx.fillStyle = '#111';
+            const pockets = [[0,0], [300,0], [0,400], [300,400], [0,200], [300,200]];
+            pockets.forEach(p => {
+                ctx.beginPath(); ctx.arc(p[0], p[1], 18, 0, Math.PI*2); ctx.fill();
+            });
+
+            // Chora Mipira na Fizikia (Movement)
+            balls.forEach(b => {
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+                ctx.fillStyle = b.color; ctx.fill(); ctx.closePath();
+                
+                // Mipira inatembea
+                b.x += b.vx; b.y += b.vy;
+                b.vx *= 0.985; b.vy *= 0.985; // Msuguano kupunguza spidi
+
+                // Kudunda kwenye kuta
+                if(b.x < b.r || b.x > canvas.width-b.r) b.vx *= -1;
+                if(b.y < b.r || b.y > canvas.height-b.r) b.vy *= -1;
+            });
+
+            // Chora Mstari wa Kulenga (Kama mtumiaji ameshikilia)
+            if (isDragging) {
+                ctx.beginPath();
+                ctx.moveTo(balls[0].x, balls[0].y);
+                ctx.lineTo(dragPos.x, dragPos.y);
+                ctx.strokeStyle = 'white'; ctx.setLineDash([5, 5]);
+                ctx.stroke(); ctx.setLineDash([]);
+            }
+            
+            requestAnimationFrame(drawGame);
+        }
+
+        // Kazi za Kugusa Kioo (Touch & Mouse Controls)
+        function handleStart(e) {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const touchX = (clientX - rect.left) * (canvas.width / rect.width);
+            const touchY = (clientY - rect.top) * (canvas.height / rect.height);
+            
+            // Angalia kama amegusa karibu na mpira mweupe
+            if (Math.hypot(touchX - balls[0].x, touchY - balls[0].y) < 30) {
+                isDragging = true; dragPos = {x: touchX, y: touchY};
             }
         }
+
+        function handleMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            dragPos.x = (clientX - rect.left) * (canvas.width / rect.width);
+            dragPos.y = (clientY - rect.top) * (canvas.height / rect.height);
+        }
+
+        function handleEnd(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            // Piga mpira (Force = Distance)
+            balls[0].vx = (balls[0].x - dragPos.x) * 0.15;
+            balls[0].vy = (balls[0].y - dragPos.y) * 0.15;
+        }
+
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('touchstart', handleStart, {passive: false});
+        canvas.addEventListener('touchmove', handleMove, {passive: false});
+        window.addEventListener('touchend', handleEnd);
+
+        // Kitufe cha kuanza upya
+        function resetGame() { initGame(); }
+        
+        // Washa Game
+        initGame(); 
+        drawGame();
     </script>
 
 </body>
